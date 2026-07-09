@@ -1,0 +1,11 @@
+# Build output (see `make clean`)
+build/
+os.iso
+
+# Upstream Limine binary branch, cloned separately:
+# git clone -b v11.x-binary --depth=1 https://github.com/limine-bootloader/limine.git limine-binary
+limine-binary/
+
+# Editor / tooling
+compile_commands.json
+.cache/
