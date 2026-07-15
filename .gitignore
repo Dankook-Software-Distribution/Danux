@@ -9,3 +9,6 @@ limine-binary/
 # Editor / tooling
 compile_commands.json
 .cache/
+
+# oh-my-claudecode session/state (not for version control)
+.omc/
