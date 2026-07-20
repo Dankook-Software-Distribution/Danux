@@ -4,8 +4,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
-extern struct usable_region usable_regions[MAX_USABLE_REGIONS];
-extern uint64_t usable_region_count;
+struct usable_region usable_regions[MAX_USABLE_REGIONS];
+uint64_t usable_region_count;
 
 /*
  * __attribute__((used, section(".limine_requests")))
