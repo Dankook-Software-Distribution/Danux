@@ -1,5 +1,5 @@
-#ifndef MM_H
-#define MM_H
+#ifndef DANUX_MM_H
+#define DANUX_MM_H
 
 #include <limine.h>
 #include <stdint.h>
