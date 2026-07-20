@@ -1,7 +1,7 @@
-#include <stdint.h>
-#include <stddef.h>
-#include <stdbool.h>
 #include <limine.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 
 #define MAX_USABLE_REGIONS	64
 
