@@ -79,6 +79,7 @@ void kmain(void) {
 	struct limine_memmap_response *response = memmap_request.response;
 	for (uint64_t i = 0; i < response->entry_count; i++) {
 		struct limine_memmap_entry *entry = response->entries[i];
+		if (entry == NULL) continue;
 
 		// USABLE TYPE(0)이라면 usable_regions 배열에 추가
 		// mini-dOS와 달리 base, length를 사용 (!= start, end)
