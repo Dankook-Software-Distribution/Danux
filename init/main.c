@@ -3,6 +3,16 @@
 #include <stdbool.h>
 #include <limine.h>
 
+#define MAX_USABLE_REGIONS	64
+
+struct usable_region {
+	uint64_t base;
+	uint64_t length;
+};
+
+struct usable_region usable_regions[MAX_USABLE_REGIONS];
+uint64_t usable_region_count;
+
 /*
  * __attribute__((used, section(".limine_requests")))
  * volatile 구조
@@ -71,9 +81,21 @@ void kmain(void) {
 		hcf();
 	}
 
+	// limine_memmap_response 구조체의 경우, 내부 필드를 Limine가 다 채워줌 (revision, entry_count, **entries)
 	struct limine_memmap_response *response = memmap_request.response;
 	for (uint64_t i = 0; i < response->entry_count; i++) {
+		struct limine_memmap_entry *entry = response->entries[i];
 
+		// USABLE TYPE(0)이라면 usable_regions 배열에 추가
+		// mini-dOS와 달리 base, length를 사용 (!= start, end)
+		if (entry->type == LIMINE_MEMMAP_USABLE) {
+			if (usable_region_count >= MAX_USABLE_REGIONS) {
+				hcf();
+			}
+			usable_regions[usable_region_count].base = entry->base;
+			usable_regions[usable_region_count].length = entry->length;
+			usable_region_count++;
+		}
 	}
 
 	// Fetch the first framebuffer.
