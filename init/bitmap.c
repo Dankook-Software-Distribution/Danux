@@ -143,13 +143,16 @@ void *bitmap_alloc(uint64_t sz, uint64_t *res_sz) {
  * bitmap_free: Return sz bytes of memory to the bitmap allcoator.
  * This function will likely be never called by anything, because most early allocations are permanently used.
  * The base parameter must be virtual.
- * This function will panic if a double-free is detected.
+ * This function will panic if it detects a double-free or an out-of-range-free.
  */
 
 void bitmap_free(void *base, uint64_t sz) {
 	uint64_t cnt = (sz + PAGE_SIZE - 1) / PAGE_SIZE;
-	for (uint64_t i = virt_to_phys(base) >> PAGE_SHIFT; cnt-- > 0; i++) {
+	uint64_t i = virt_to_phys(base) >> PAGE_SHIFT;
+	if (i+cnt > bitmap_max_idx) panic("There was an attempt to free an out-of-range page in bitmap_free");
+
+	while (cnt--) {
 		if (!bitmap_test_single(i)) panic("Double-free detected in bitmap_free");
-		bitmap_unset_single(i);
+		bitmap_unset_single(i++);
 	}
 }
