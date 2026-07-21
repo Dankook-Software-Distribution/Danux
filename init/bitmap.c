@@ -108,7 +108,7 @@ void bitmap_init(void) {
  * This function will panic if there isn't enough available memory.
  */
 
-static uint64_t *__bitmap_alloc(uint64_t from, uint64_t to, uint64_t cnt) {
+static void *__bitmap_alloc(uint64_t from, uint64_t to, uint64_t cnt) {
 	if (to > bitmap_max_idx) to = bitmap_max_idx;
 
 bitmap_search:
@@ -128,7 +128,7 @@ bitmap_search:
 	return 0;
 }
 
-uint64_t *bitmap_alloc(uint64_t sz, uint64_t *res_sz) {
+void *bitmap_alloc(uint64_t sz, uint64_t *res_sz) {
 	// Count the number of pages to allocate.
 	uint64_t cnt = (sz + PAGE_SIZE - 1) / PAGE_SIZE;
 	uint64_t *res = __bitmap_alloc(bitmap_hint, bitmap_max_idx, cnt);
@@ -146,6 +146,10 @@ uint64_t *bitmap_alloc(uint64_t sz, uint64_t *res_sz) {
  * This function will panic if a double-free is detected.
  */
 
-void bitmap_free(uint64_t *base, uint64_t sz) {
-	
+void bitmap_free(void *base, uint64_t sz) {
+	uint64_t cnt = (sz + PAGE_SIZE - 1) / PAGE_SIZE;
+	for (uint64_t i = virt_to_phys(base) >> PAGE_SHIFT; cnt-- > 0; i++) {
+		if (!bitmap_test_single(i)) panic("Double-free detected in bitmap_free");
+		bitmap_unset_single(i);
+	}
 }
