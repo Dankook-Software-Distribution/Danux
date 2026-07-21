@@ -24,7 +24,7 @@ static void find_bitmap_area(uint64_t sz)
 	// Page-align the sz variable just in case.
 	sz = (sz + PAGE_SIZE - 1) / PAGE_SIZE * PAGE_SIZE;
 
-	for (int i = 0; i < usable_region_count; i++) {
+	for (uint64_t i = 0; i < usable_region_count; i++) {
 		if (usable_regions[i].length >= sz) {
 			// bitmap_start, bitmap_end store physical addresses.
 			// bitmap_sz stores the size of the bitmap in bytes.
@@ -80,7 +80,7 @@ static void bitmap_unset(uint64_t from, uint64_t to) {
 
 void bitmap_init(void) {
 	uint64_t max_pfn = 0;
-	for (int i = 0; i < usable_region_count; i++) {
+	for (uint64_t i = 0; i < usable_region_count; i++) {
 		uint64_t tmp = (usable_regions[i].base + usable_regions[i].length) >> PAGE_SHIFT;
 		if (tmp > max_pfn) max_pfn = tmp;
 	}
@@ -88,7 +88,7 @@ void bitmap_init(void) {
 	find_bitmap_area((max_pfn+7)/8); // The size of the bitmap should be byte-aligned.
 	memset(bitmap, 0xFF, bitmap_sz);
 
-	for (int i = 0; i < usable_region_count; i++) {
+	for (uint64_t i = 0; i < usable_region_count; i++) {
 		bitmap_unset(
 			usable_regions[i].base >> PAGE_SHIFT,
 			(usable_regions[i].base + usable_regions[i].length) >> PAGE_SHIFT
@@ -131,7 +131,7 @@ bitmap_search:
 void *bitmap_alloc(uint64_t sz, uint64_t *res_sz) {
 	// Count the number of pages to allocate.
 	uint64_t cnt = (sz + PAGE_SIZE - 1) / PAGE_SIZE;
-	uint64_t *res = __bitmap_alloc(bitmap_hint, bitmap_max_idx, cnt);
+	void *res = __bitmap_alloc(bitmap_hint, bitmap_max_idx, cnt);
 	if (!res) res = __bitmap_alloc(0, bitmap_hint+cnt, cnt);
 	if (!res) panic("Not enough memory available for bitmap_alloc");
 
