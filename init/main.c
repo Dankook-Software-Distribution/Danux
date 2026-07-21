@@ -6,6 +6,9 @@
 
 struct usable_region usable_regions[MAX_USABLE_REGIONS];
 uint64_t usable_region_count;
+uint64_t hhdm_offset;
+
+extern void bitmap_init(void);
 
 /*
  * __attribute__((used, section(".limine_requests")))
@@ -29,6 +32,12 @@ static volatile struct limine_framebuffer_request framebuffer_request = {
 	.revision = 0
 };
 
+__attribute__((used, section(".limine_requests")))
+static volatile struct limine_hhdm_request hhdm_request = {
+	.id = LIMINE_HHDM_REQUEST_ID,
+	.revision = 0
+};
+
 __attribute__((used, section(".limine_requests_start")))
 static volatile uint64_t limine_requests_start_marker[] = LIMINE_REQUESTS_START_MARKER;
 
@@ -40,6 +49,10 @@ static volatile uint64_t limine_requests_end_marker[] = LIMINE_REQUESTS_END_MARK
 static void hcf(void) {
 	for (;;)
 		asm ("hlt");
+}
+
+void fetch_hhdm_offset(void) {
+	hhdm_offset = hhdm_request.response->offset;
 }
 
 // The following will be our kernel's entry point.
@@ -92,6 +105,9 @@ void kmain(void) {
 			usable_region_count++;
 		}
 	}
+
+	fetch_hhdm_offset();
+	bitmap_init();
 
 	// Fetch the first framebuffer.
 	struct limine_framebuffer *framebuffer = framebuffer_request.response->framebuffers[0];
