@@ -51,10 +51,6 @@ static void hcf(void) {
 		asm ("hlt");
 }
 
-void fetch_hhdm_offset(void) {
-	hhdm_offset = hhdm_request.response->offset;
-}
-
 // The following will be our kernel's entry point.
 void kmain(void) {
 	/*
@@ -76,6 +72,13 @@ void kmain(void) {
 	 * 그걸 확인하는 로직
 	 */
 	if (memmap_request.response == NULL) {
+		hcf();
+	}
+
+	/*
+	 * Limine가 매핑한 HHDM 시작 주소를 받아올 수 있는지 확인
+	 */
+	if (hhdm_request.response == NULL) {
 		hcf();
 	}
 
@@ -106,7 +109,7 @@ void kmain(void) {
 		}
 	}
 
-	fetch_hhdm_offset();
+	hhdm_offset = hhdm_request.response->offset;
 	bitmap_init();
 
 	// Fetch the first framebuffer.
