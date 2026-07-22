@@ -13,5 +13,10 @@ struct usable_region {
 
 extern struct usable_region usable_regions[MAX_USABLE_REGIONS];
 extern uint64_t usable_region_count;
+extern uint64_t hhdm_offset;
+
+extern void *phys_to_virt(uint64_t);
+extern uint64_t virt_to_phys(void *);
+extern void *memset(void *, int, uint64_t);
 
 #endif

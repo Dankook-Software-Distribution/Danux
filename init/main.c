@@ -6,6 +6,9 @@
 
 struct usable_region usable_regions[MAX_USABLE_REGIONS];
 uint64_t usable_region_count;
+uint64_t hhdm_offset;
+
+extern void bitmap_init(void);
 
 /*
  * __attribute__((used, section(".limine_requests")))
@@ -26,6 +29,12 @@ static volatile struct limine_memmap_request memmap_request = {
 __attribute__((used, section(".limine_requests")))
 static volatile struct limine_framebuffer_request framebuffer_request = {
 	.id = LIMINE_FRAMEBUFFER_REQUEST_ID,
+	.revision = 0
+};
+
+__attribute__((used, section(".limine_requests")))
+static volatile struct limine_hhdm_request hhdm_request = {
+	.id = LIMINE_HHDM_REQUEST_ID,
 	.revision = 0
 };
 
@@ -67,6 +76,13 @@ void kmain(void) {
 	}
 
 	/*
+	 * Limine가 매핑한 HHDM 시작 주소를 받아올 수 있는지 확인
+	 */
+	if (hhdm_request.response == NULL) {
+		hcf();
+	}
+
+	/*
 	 * framebuffer도 비슷함
 	 * 대신 framebuffer의 경우, framebuffer가 0개면 그릴 화면이 없기 때문에 개수도 확인함
 	 */
@@ -92,6 +108,9 @@ void kmain(void) {
 			usable_region_count++;
 		}
 	}
+
+	hhdm_offset = hhdm_request.response->offset;
+	bitmap_init();
 
 	// Fetch the first framebuffer.
 	struct limine_framebuffer *framebuffer = framebuffer_request.response->framebuffers[0];
