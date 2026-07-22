@@ -17,6 +17,6 @@ extern uint64_t hhdm_offset;
 
 extern void *phys_to_virt(uint64_t);
 extern uint64_t virt_to_phys(void *);
-extern void memset(void *, int, uint64_t);
+extern void *memset(void *, int, uint64_t);
 
 #endif

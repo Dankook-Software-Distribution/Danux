@@ -9,7 +9,8 @@ uint64_t virt_to_phys(void *virt) {
 	return (uint64_t) virt - hhdm_offset;
 }
 
-void memset(void *base, int byte, uint64_t sz) {
+void *memset(void *base, int byte, uint64_t sz) {
 	unsigned char *p = base;
 	while (sz--) *p++ = byte;
+	return base;
 }
