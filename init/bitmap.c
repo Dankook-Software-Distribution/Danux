@@ -1,8 +1,8 @@
 #include <danux/mm.h>
 #include <danux/page.h>
 #include <danux/panic.h>
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 static uint64_t bitmap_start;
 static uint64_t bitmap_end;
