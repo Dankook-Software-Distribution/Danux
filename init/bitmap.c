@@ -13,6 +13,7 @@ static uint64_t bitmap_hint; // This is a heuristic bitmap index variable. It in
 
 /*
  * find_bitmap_area: Sets the global varaibles bitmap_start and bitmap_end to mark the bitmap area.
+ * The argument sz denotes the size of the bitmap in bytes.
  * This function should only be called once.
  */
 static void find_bitmap_area(uint64_t sz)
@@ -100,10 +101,6 @@ void bitmap_init(void) {
  * __bitmap_alloc: Helper function of bitmap_alloc.
  * Searches for a contiguous range of pages in [from, to), and sets the bitmap status accordingly.
  * Returns a virtual pointer to the start of the allocated memory.
- *
- * bitmap_alloc: Allocates at least sz bytes of memory.
- * Returns a virtual pointer to the start of the allocated memory.
- * This function will panic if there isn't enough available memory.
  */
 static void *__bitmap_alloc(uint64_t from, uint64_t to, uint64_t cnt) {
 	if (to > bitmap_max_idx) to = bitmap_max_idx;
@@ -125,12 +122,18 @@ bitmap_search:
 	return 0;
 }
 
+/*
+ * bitmap_alloc: Allocates at least sz bytes of memory.
+ * Returns a virtual pointer to the start of the allocated memory.
+ * This function will panic if there isn't enough available memory.
+ */
 void *bitmap_alloc(uint64_t sz) {
 	// Count the number of pages to allocate.
 	uint64_t cnt = (sz + PAGE_SIZE - 1) / PAGE_SIZE;
-	void *res = __bitmap_alloc(bitmap_hint, bitmap_max_idx, cnt);
-	if (!res) res = __bitmap_alloc(0, bitmap_hint+cnt, cnt);
-	if (!res) panic("Not enough memory available for bitmap_alloc");
+
+	void *res = __bitmap_alloc(bitmap_hint, bitmap_max_idx, cnt);		// First, attempt to find space in [bitmap_hint, bitmap_max_idx).
+	if (!res) res = __bitmap_alloc(0, bitmap_hint+cnt, cnt);		// If the previous attempt fails, try to find space in [0, bitmap_hint+cnt).
+	if (!res) panic("Not enough memory available for bitmap_alloc");	// If all fails, panic.
 
 	return res;
 }
