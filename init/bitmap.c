@@ -15,7 +15,6 @@ static uint64_t bitmap_hint; // This is a heuristic bitmap index variable. It in
  * find_bitmap_area: Sets the global varaibles bitmap_start and bitmap_end to mark the bitmap area.
  * This function should only be called once.
  */
-
 static void find_bitmap_area(uint64_t sz)
 {
 	if (bitmap)
@@ -42,12 +41,6 @@ static void find_bitmap_area(uint64_t sz)
 	panic("No memory is available to find bitmap area");
 }
 
-/*
- * bitmap_set: Sets all bits within [from, to) to 1.
- * Note that from is inclusive, to is exclusive.
- * bitmap_unset is analogous to bitmap_set.
- */
-
 static inline void bitmap_set_single(uint64_t idx) {
 	bitmap[idx/64] |= 1UL << (idx%64);
 }
@@ -62,6 +55,11 @@ static inline bool bitmap_test_single(uint64_t idx) {
 	return (bool) (bitmap[idx/64] & (1UL << (idx%64)));
 }
 
+/*
+ * bitmap_set: Sets all bits within [from, to) to 1.
+ * Note that from is inclusive, to is exclusive.
+ * bitmap_unset is analogous to bitmap_set.
+ */
 static void bitmap_set(uint64_t from, uint64_t to) {
 	if (to > bitmap_max_idx || from >= to)
 		panic("Invalid arguments for bitmap_set");
@@ -107,7 +105,6 @@ void bitmap_init(void) {
  * Returns a virtual pointer to the start of the allocated memory.
  * This function will panic if there isn't enough available memory.
  */
-
 static void *__bitmap_alloc(uint64_t from, uint64_t to, uint64_t cnt) {
 	if (to > bitmap_max_idx) to = bitmap_max_idx;
 
@@ -145,7 +142,6 @@ void *bitmap_alloc(uint64_t sz, uint64_t *res_sz) {
  * The base parameter must be virtual.
  * This function will panic if it detects a double-free or an out-of-range-free.
  */
-
 void bitmap_free(void *base, uint64_t sz) {
 	uint64_t cnt = (sz + PAGE_SIZE - 1) / PAGE_SIZE;
 	uint64_t i = virt_to_phys(base) >> PAGE_SHIFT;
