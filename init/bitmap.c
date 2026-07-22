@@ -125,14 +125,13 @@ bitmap_search:
 	return 0;
 }
 
-void *bitmap_alloc(uint64_t sz, uint64_t *res_sz) {
+void *bitmap_alloc(uint64_t sz) {
 	// Count the number of pages to allocate.
 	uint64_t cnt = (sz + PAGE_SIZE - 1) / PAGE_SIZE;
 	void *res = __bitmap_alloc(bitmap_hint, bitmap_max_idx, cnt);
 	if (!res) res = __bitmap_alloc(0, bitmap_hint+cnt, cnt);
 	if (!res) panic("Not enough memory available for bitmap_alloc");
 
-	if (res_sz) *res_sz = cnt * PAGE_SIZE;
 	return res;
 }
 
