@@ -78,12 +78,7 @@ static void bitmap_unset(uint64_t from, uint64_t to) {
 }
 
 void bitmap_init(void) {
-	uint64_t max_pfn = 0;
-	for (uint64_t i = 0; i < usable_region_count; i++) {
-		uint64_t tmp = (usable_regions[i].base + usable_regions[i].length) >> PAGE_SHIFT;
-		if (tmp > max_pfn) max_pfn = tmp;
-	}
-
+	find_max_pfn();
 	find_bitmap_area((max_pfn+7)/8); // The size of the bitmap should be byte-aligned.
 	memset(bitmap, 0xFF, bitmap_sz);
 
