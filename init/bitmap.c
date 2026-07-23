@@ -1,3 +1,4 @@
+#include <danux/bitmap.h>
 #include <danux/mm.h>
 #include <danux/page.h>
 #include <danux/panic.h>
@@ -7,7 +8,6 @@
 static uint64_t bitmap_start;
 static uint64_t bitmap_end;
 static uint64_t bitmap_sz;
-static uint64_t bitmap_max_idx;
 static uint64_t *bitmap;
 static uint64_t bitmap_hint; // This is a heuristic bitmap index variable. It indicates that allocation will likely succeed if the search starts from the stored index.
 
@@ -32,7 +32,6 @@ static void find_bitmap_area(uint64_t sz)
 			bitmap_start = usable_regions[i].base;
 			bitmap_end = bitmap_start + sz;
 			bitmap_sz = sz;
-			bitmap_max_idx = sz*8;
 			bitmap = phys_to_virt(bitmap_start);
 			bitmap_hint = 0;
 			return;
@@ -52,7 +51,7 @@ static inline void bitmap_unset_single(uint64_t idx) {
 	bitmap[idx/64] &= ~(1UL << (idx%64));
 }
 
-static inline bool bitmap_test_single(uint64_t idx) {
+bool bitmap_test_single(uint64_t idx) {
 	return (bool) (bitmap[idx/64] & (1UL << (idx%64)));
 }
 
@@ -62,7 +61,7 @@ static inline bool bitmap_test_single(uint64_t idx) {
  * bitmap_unset is analogous to bitmap_set.
  */
 static void bitmap_set(uint64_t from, uint64_t to) {
-	if (to > bitmap_max_idx || from >= to)
+	if (to > max_pfn || from >= to)
 		panic("Invalid arguments for bitmap_set");
 
 	for (uint64_t i = from; i < to; i++)
@@ -70,7 +69,7 @@ static void bitmap_set(uint64_t from, uint64_t to) {
 }
 
 static void bitmap_unset(uint64_t from, uint64_t to) {
-	if (to > bitmap_max_idx || from >= to)
+	if (to > max_pfn || from >= to)
 		panic("Invalid arguments for bitmap_unset");
 
 	for (uint64_t i = from; i < to; i++)
@@ -78,12 +77,7 @@ static void bitmap_unset(uint64_t from, uint64_t to) {
 }
 
 void bitmap_init(void) {
-	uint64_t max_pfn = 0;
-	for (uint64_t i = 0; i < usable_region_count; i++) {
-		uint64_t tmp = (usable_regions[i].base + usable_regions[i].length) >> PAGE_SHIFT;
-		if (tmp > max_pfn) max_pfn = tmp;
-	}
-
+	find_max_pfn();
 	find_bitmap_area((max_pfn+7)/8); // The size of the bitmap should be byte-aligned.
 	memset(bitmap, 0xFF, bitmap_sz);
 
@@ -103,7 +97,7 @@ void bitmap_init(void) {
  * Returns a virtual pointer to the start of the allocated memory.
  */
 static void *__bitmap_alloc(uint64_t from, uint64_t to, uint64_t cnt) {
-	if (to > bitmap_max_idx) to = bitmap_max_idx;
+	if (to > max_pfn) to = max_pfn;
 
 bitmap_search:
 	while (from+cnt <= to) {
@@ -131,7 +125,7 @@ void *bitmap_alloc(uint64_t sz) {
 	// Count the number of pages to allocate.
 	uint64_t cnt = (sz + PAGE_SIZE - 1) / PAGE_SIZE;
 
-	void *res = __bitmap_alloc(bitmap_hint, bitmap_max_idx, cnt);		// First, attempt to find space in [bitmap_hint, bitmap_max_idx).
+	void *res = __bitmap_alloc(bitmap_hint, max_pfn, cnt);			// First, attempt to find space in [bitmap_hint, max_pfn).
 	if (!res) res = __bitmap_alloc(0, bitmap_hint+cnt, cnt);		// If the previous attempt fails, try to find space in [0, bitmap_hint+cnt).
 	if (!res) panic("Not enough memory available for bitmap_alloc");	// If all fails, panic.
 
@@ -147,7 +141,7 @@ void *bitmap_alloc(uint64_t sz) {
 void bitmap_free(void *base, uint64_t sz) {
 	uint64_t cnt = (sz + PAGE_SIZE - 1) / PAGE_SIZE;
 	uint64_t i = virt_to_phys(base) >> PAGE_SHIFT;
-	if (i+cnt > bitmap_max_idx) panic("There was an attempt to free an out-of-range page in bitmap_free");
+	if (i+cnt > max_pfn) panic("There was an attempt to free an out-of-range page in bitmap_free");
 
 	while (cnt--) {
 		if (!bitmap_test_single(i)) panic("Double-free detected in bitmap_free");

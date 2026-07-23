@@ -1,4 +1,6 @@
+#include <danux/bitmap.h>
 #include <danux/mm.h>
+#include <danux/page.h>
 #include <limine.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -7,8 +9,6 @@
 struct usable_region usable_regions[MAX_USABLE_REGIONS];
 uint64_t usable_region_count;
 uint64_t hhdm_offset;
-
-extern void bitmap_init(void);
 
 /*
  * __attribute__((used, section(".limine_requests")))
@@ -111,6 +111,7 @@ void kmain(void) {
 
 	hhdm_offset = hhdm_request.response->offset;
 	bitmap_init();
+	page_init();
 
 	// Fetch the first framebuffer.
 	struct limine_framebuffer *framebuffer = framebuffer_request.response->framebuffers[0];
