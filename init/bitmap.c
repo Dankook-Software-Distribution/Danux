@@ -1,3 +1,4 @@
+#include <danux/bitmap.h>
 #include <danux/mm.h>
 #include <danux/page.h>
 #include <danux/panic.h>
@@ -50,7 +51,7 @@ static inline void bitmap_unset_single(uint64_t idx) {
 	bitmap[idx/64] &= ~(1UL << (idx%64));
 }
 
-static inline bool bitmap_test_single(uint64_t idx) {
+bool bitmap_test_single(uint64_t idx) {
 	return (bool) (bitmap[idx/64] & (1UL << (idx%64)));
 }
 
