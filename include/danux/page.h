@@ -10,4 +10,13 @@ extern uint64_t max_pfn;
 
 extern void find_max_pfn(void);
 
+#define PG_RESERVED	(1 << 0)
+
+struct page {
+	uint64_t flags;
+	uint64_t misc; // Used to store miscellaneous values. The buddy allocator may use it to store the allocation order.
+	struct page *prev;
+	struct page *next;
+};
+
 #endif
