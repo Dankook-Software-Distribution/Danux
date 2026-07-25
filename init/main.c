@@ -1,4 +1,5 @@
 #include <danux/mm.h>
+#include <danux/serial.h>
 #include <limine.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -53,6 +54,10 @@ static void hcf(void) {
 
 // The following will be our kernel's entry point.
 void kmain(void) {
+	/* Serial only needs port I/O, so bring it up first for early logs. */
+	serial_init();
+	serial_puts("[boot] kmain entered\n");
+
 	/*
 	 * 전역변수 설정에서 limine_base_revision[2]가 LIMINE_BASE_REVISION() 매크로에 의해 6으로 설정됨
 	 * 그리고 LIMINE_BASE_REVISION_SUPPORTED 매크로는 limine_base_revision[2] == 0을 수행함
