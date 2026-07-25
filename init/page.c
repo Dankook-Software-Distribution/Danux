@@ -3,6 +3,8 @@
 #include <danux/page.h>
 #include <stdint.h>
 
+// Here, max_pfn denotes the past-the-end value, which is equal to the actual maximum + 1.
+// This allows for loops like this: for (uint64_t i = 0; i < max_pfn; i++) {...}
 uint64_t max_pfn;
 struct page *page_arr;
 
@@ -13,6 +15,11 @@ void find_max_pfn(void) {
 	}
 }
 
+/*
+ * page_init: This function allocates the page struct array.
+ * After this function runs, the space for max_pfn pages are allocated, and page_arr points to the first page struct.
+ * All pages are set with PG_RESERVED at start. The buddy allocator should unset the reserved flags as it receives the pages.
+ */
 void page_init(void) {
 	page_arr = bitmap_alloc(max_pfn * sizeof(struct page));
 	memset(page_arr, 0, max_pfn * sizeof(struct page));
