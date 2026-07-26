@@ -4,7 +4,7 @@ MAKEFLAGS += -rR
 # x86_64-elf bare-metal cross toolchain (built into $HOME/opt/cross).
 # Override on the command line if it lives elsewhere, e.g.
 #   make TOOLCHAIN=            (empty -> use whatever is on PATH)
-TOOLCHAIN ?= $(HOME)/opt/cross/bin/
+TOOLCHAIN ?= /opt/cross/bin/
 CC := $(TOOLCHAIN)x86_64-elf-gcc
 LD := $(TOOLCHAIN)x86_64-elf-ld
 
