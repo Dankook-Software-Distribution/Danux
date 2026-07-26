@@ -115,6 +115,14 @@ void kmain(void) {
 	}
 
 	hhdm_offset = hhdm_request.response->offset;
+
+	serial_puts("[boot] usable regions = ");
+	serial_putdec(usable_region_count);
+	serial_putc('\n');
+	serial_puts("[boot] hhdm offset    = ");
+	serial_puthex(hhdm_offset);
+	serial_putc('\n');
+
 	bitmap_init();
 
 	// Fetch the first framebuffer.

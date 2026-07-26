@@ -16,6 +16,8 @@
 #define UART_LSR_THRE		0x20 /* Transmit-hold-register empty */
 #define UART_DIVISOR 		1 	 /* 115200 baud: divisor = 115200 / baud = 1. */
 
+static const char hex_digits[] = "0123456789abcdef";
+
 void serial_init(void) {
 	outb(0x00, COM1 + UART_IER);            /* disable interrupts (polling) */
 
@@ -23,7 +25,7 @@ void serial_init(void) {
 	outb(UART_DIVISOR & 0xFF, COM1 + UART_DLL);
 	outb((UART_DIVISOR >> 8) & 0xFF, COM1 + UART_DLM);
 
-	outb(0x03, COM1 + UART_LCR);    	      /* 8n1, clears DLAB */
+	outb(0x03, COM1 + UART_LCR);    	    /* 8n1, clears DLAB */
 	outb(0x00, COM1 + UART_FCR);            /* no FIFO */
 	outb(0x03, COM1 + UART_MCR);            /* DTR + RTS */
 }
@@ -41,4 +43,28 @@ void serial_putc(char c) {
 void serial_puts(const char *s) {
 	while (*s)
 		serial_putc(*s++);
+}
+
+void serial_puthex(uint64_t val) {
+	serial_puts("0x");
+	for (int i = 60; i >= 0; i -= 4)
+		serial_putc(hex_digits[(val >> i) & 0xF]);
+}
+
+void serial_putdec(uint64_t val) {
+	char buf[20];
+	int i = 0;
+
+	if (val == 0) {
+		serial_putc('0');
+		return;
+	}
+
+	while (val > 0) {
+		buf[i++] = '0' + (val % 10);
+		val /= 10;
+	}
+
+	while (i > 0) 				/* LSB-first */
+		serial_putc(buf[--i]);
 }
