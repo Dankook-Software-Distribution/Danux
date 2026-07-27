@@ -2,6 +2,11 @@
 #include <io.h>
 #include <stdint.h>
 
+/*
+ * Detailed explanations regarding the constants and serial manipulation logic can be found here:
+ * https://wiki.osdev.org/Serial_Ports#Programming_the_Serial_Communications_Port
+ */
+
 #define COM1		0x3F8
 #define UART_TX		0	/* Out: Transmit buffer */
 #define UART_DLL	0	/* Out: Divisor Latch Low */
@@ -26,7 +31,7 @@ void serial_init(void) {
 	outb((UART_DIVISOR >> 8) & 0xFF, COM1 + UART_DLM);
 
 	outb(0x03, COM1 + UART_LCR);    	    /* 8n1, clears DLAB */
-	outb(0x00, COM1 + UART_FCR);            /* no FIFO */
+	outb(0xC7, COM1 + UART_FCR);            /* enable FIFO buffering. */
 	outb(0x03, COM1 + UART_MCR);            /* DTR + RTS */
 }
 
