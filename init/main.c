@@ -1,5 +1,6 @@
 #include <danux/bitmap.h>
 #include <danux/mm.h>
+#include <danux/serial.h>
 #include <danux/page.h>
 #include <limine.h>
 #include <stdbool.h>
@@ -53,6 +54,10 @@ static void hcf(void) {
 
 // The following will be our kernel's entry point.
 void kmain(void) {
+	/* Serial only needs port I/O, so bring it up first for early logs. */
+	serial_init();
+	serial_puts("[boot] kmain entered\n");
+
 	/*
 	 * 전역변수 설정에서 limine_base_revision[2]가 LIMINE_BASE_REVISION() 매크로에 의해 6으로 설정됨
 	 * 그리고 LIMINE_BASE_REVISION_SUPPORTED 매크로는 limine_base_revision[2] == 0을 수행함
@@ -110,6 +115,14 @@ void kmain(void) {
 	}
 
 	hhdm_offset = hhdm_request.response->offset;
+
+	serial_puts("[boot] usable regions = ");
+	serial_putdec(usable_region_count);
+	serial_putc('\n');
+	serial_puts("[boot] hhdm offset    = ");
+	serial_puthex(hhdm_offset);
+	serial_putc('\n');
+
 	bitmap_init();
 	page_init();
 

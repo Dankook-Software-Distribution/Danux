@@ -1,15 +1,19 @@
 MAKEFLAGS += -rR
 .SUFFIXES:
 
-CC := gcc
-LD := ld
+# x86_64-elf bare-metal cross toolchain (built into $HOME/opt/cross).
+# Override on the command line if it lives elsewhere, e.g.
+#   make TOOLCHAIN=            (empty -> use whatever is on PATH)
+TOOLCHAIN ?= /opt/cross/bin/
+CC := $(TOOLCHAIN)x86_64-elf-gcc
+LD := $(TOOLCHAIN)x86_64-elf-ld
 
 KERNEL   := build/kernel
 ISO      := os.iso
 ISO_ROOT := build/iso_root
 LIMINE   := limine-binary/limine
 
-CPPFLAGS := -Iinclude -MMD -MP
+CPPFLAGS := -Iinclude -Iarch/x86/include -MMD -MP
 
 # -mcmodel=kernel pairs with the 0xffffffff80000000 base in linker.ld.
 # The -mno-* flags keep the compiler from emitting FPU/SSE instructions,
@@ -27,12 +31,12 @@ CFLAGS := -g -O2 -pipe -std=gnu11 -Wall -Wextra \
 
 LDFLAGS := -nostdlib -static -z max-page-size=0x1000 -T linker.ld
 
-SRCS := $(shell find init -name '*.c')
+SRCS := $(shell find init arch drivers -name '*.c')
 OBJS := $(patsubst %.c,build/%.o,$(SRCS))
 DEPS := $(OBJS:.o=.d)
 
 QEMU      := qemu-system-x86_64
-QEMUFLAGS := -M q35 -m 512M -cdrom $(ISO) -boot d
+QEMUFLAGS := -M q35 -m 512M -cdrom $(ISO) -boot d -serial stdio
 
 .PHONY: all
 all: $(ISO)
