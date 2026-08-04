@@ -1,6 +1,7 @@
 #ifndef DANUX_PAGE_H
 #define DANUX_PAGE_H
 
+#include <danux/list.h>
 #include <stdint.h>
 
 #define PAGE_SHIFT 12
@@ -20,8 +21,7 @@ extern void page_init(void);
 struct page {
 	uint64_t flags;
 	uint64_t misc; // Used to store miscellaneous values. The buddy allocator may use it to store the allocation order.
-	struct page *prev;
-	struct page *next;
+	struct list_head linkage; // Used to manage free pages by the buddy allocator.
 };
 
 #endif
