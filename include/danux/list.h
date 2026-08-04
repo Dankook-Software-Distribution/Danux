@@ -38,4 +38,22 @@ extern void list_del(struct list_head *);
 #define list_entry(node, type, member) \
 	((type *) ((char *) (node) - offsetof(type, member)))
 
+/*
+ * list_for_each_entry: defines a for loop header to iterate over the list entries.
+ * it: name of the iterator variable, must be pre-defined before the call.
+ * head: pointer to the head of the list.
+ * member: name of list_head in the enclosing struct.
+ *
+ * Example usage:
+ *
+ * struct page *p;
+ * list_for_each_entry(p, head, linkage) {...}
+ */
+#define list_for_each_entry(it, head, member) \
+	for ( \
+		it = list_entry((head)->next, typeof(*it), member); \
+		&it->member != (head); \
+		it = list_entry(it->member.next, typeof(*it), member) \
+	)
+
 #endif
