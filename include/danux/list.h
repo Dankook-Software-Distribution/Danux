@@ -18,14 +18,25 @@ static inline void list_head_link(struct list_head *node1, struct list_head *nod
 	node2->prev = node1;
 }
 
+static inline void list_add_prev(struct list_head *base, struct list_head *node) {
+	list_head_link(base->prev, node);
+	list_head_link(node, base);
+}
+
+static inline void list_add_next(struct list_head *base, struct list_head *node) {
+	list_head_link(node, base->next);
+	list_head_link(base, node);
+}
+
+static inline void list_del(struct list_head *node) {
+	list_head_link(node->prev, node->next);
+	list_head_init(node);
+}
+
 // A list is empty if it is a singleton.
 static inline bool list_empty(struct list_head *node) {
 	return node->next == node;
 }
-
-extern void list_add_prev(struct list_head *, struct list_head *);
-extern void list_add_next(struct list_head *, struct list_head *);
-extern void list_del(struct list_head *);
 
 /*
  * list_entry: returns the pointer to the enclosing struct.
