@@ -15,6 +15,10 @@ void find_max_pfn(void) {
 	}
 }
 
+uint64_t page_to_pfn(struct page *page) {
+	return (uint64_t) (page - page_arr);
+}
+
 /*
  * page_init: This function allocates the page struct array.
  * After this function runs, the space for max_pfn pages are allocated, and page_arr points to the first page struct.

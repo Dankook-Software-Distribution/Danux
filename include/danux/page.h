@@ -12,6 +12,7 @@ extern struct page *page_arr;
 
 extern void find_max_pfn(void);
 extern void page_init(void);
+extern uint64_t page_to_pfn(struct page *);
 
 // Page flag values. These definitions are not final.
 #define PG_RESERVED	(1 << 0)
