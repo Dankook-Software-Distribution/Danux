@@ -30,8 +30,12 @@ static void split_free_page(uint8_t order) {
 	page_arr[left_pfn].flags |= PG_BUDDY;
 	page_arr[right_pfn].flags |= PG_BUDDY;
 
+	// 쪼갠 free_page를 현재 order의 하위 free_list에 넣기
 	list_add_next(&g_buddy_system.free_list[order - 1], &page_arr[left_pfn].linkage);
 	list_add_next(&g_buddy_system.free_list[order - 1], &page_arr[right_pfn].linkage);
+
+	// 쪼갠 free_page를 free_list에서 삭제
+	list_del(node);
 }
 
 static void *get_free_page(uint8_t order) {
@@ -44,6 +48,9 @@ static void *get_free_page(uint8_t order) {
 
 	page_arr[pfn].flags &= ~PG_BUDDY;
 	page_arr[pfn].misc = (uint64_t)order;
+
+	// 할당한 페이지 삭제
+	list_del(node);
 
 	// 물리주소 pfn << PAGE_SHIFT를 가상 주소로 변환
 	return phys_to_virt(pfn << PAGE_SHIFT);
@@ -77,16 +84,18 @@ void *page_alloc(uint64_t byte_size) {
 		split_free_page(i);
 	}
 
+	g_buddy_system.free_pages -= (1UL << orig_order);
+
 	return get_free_page(orig_order);
 }
 
 void page_free(void *addr) {
 	// 가상 주소로 받은 addr로 PFN를 구해야함 -> virt_to_phys() == PFN
-	uint64_t pfn = virt_to_phys((void *)addr);
+	uint64_t pfn = virt_to_phys((void *)addr) >> PAGE_SHIFT;
 	uint8_t order = (uint8_t)page_arr[pfn].misc;
 	uint64_t buddy_pfn = buddy_pfn_of(pfn, order);
 
-	page_arr[pfn].flags = 0;
+	page_arr[pfn].flags = PG_BUDDY;
 
 	while (order < MAX_ORDER && page_arr[buddy_pfn].flags & PG_BUDDY) {
 		// 두 페이지 중 더 낮은 번호의 페이지를 선택
@@ -96,6 +105,8 @@ void page_free(void *addr) {
 	}
 
 	list_add_next(&g_buddy_system.free_list[order], &page_arr[pfn].linkage);
+
+	g_buddy_system.free_pages += (1UL << order);
 }
 
 static void buddy_list_init() {
