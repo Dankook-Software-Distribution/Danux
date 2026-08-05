@@ -4,7 +4,12 @@
 #include <danux/page.h>
 #include <stdint.h>
 
-uint64_t *page_alloc();
-void page_free(struct page *page_arr);
+#define MAX_ORDER	10
+
+typedef struct buddy_system buddy_system;
+
+void *page_alloc(uint64_t byte_size);
+void page_free(void *addr);
+void buddy_init();
 
 #endif

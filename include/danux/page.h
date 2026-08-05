@@ -17,6 +17,7 @@ extern void page_init(void);
 #define PG_RESERVED	(1 << 0)
 #define PG_ALLOCATED	(1 << 1)
 #define PG_PROTECTED	(1 << 2)
+#define PG_BUDDY	(1 << 3)
 
 struct page {
 	uint64_t flags;
