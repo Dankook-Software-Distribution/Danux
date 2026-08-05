@@ -98,6 +98,10 @@ void page_free(void *addr) {
 	page_arr[pfn].flags = PG_BUDDY;
 
 	while (order < MAX_ORDER && page_arr[buddy_pfn].flags & PG_BUDDY) {
+		// 합치기 전 buddy를 free_list에서 삭제
+		list_del(&page_arr[buddy_pfn].linkage);
+		page_arr[buddy_pfn].flags &= ~PG_BUDDY;
+
 		// 두 페이지 중 더 낮은 번호의 페이지를 선택
 		pfn = pfn < buddy_pfn ? pfn : buddy_pfn;
 		buddy_pfn = buddy_pfn_of(pfn, order + 1);
