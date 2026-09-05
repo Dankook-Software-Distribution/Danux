@@ -19,6 +19,7 @@ extern uint64_t page_to_pfn(struct page *);
 #define PG_ALLOCATED	(1 << 1)
 #define PG_PROTECTED	(1 << 2)
 #define PG_BUDDY	(1 << 3)
+#define PG_SLAB		(1 << 4) // 슬랩 할당자가 소유한 페이지
 
 struct page {
 	uint64_t flags;
