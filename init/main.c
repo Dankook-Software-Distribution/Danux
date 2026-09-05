@@ -1,7 +1,10 @@
 #include <danux/bitmap.h>
+#include <danux/buddy_allocator.h>
 #include <danux/mm.h>
 #include <danux/serial.h>
 #include <danux/page.h>
+#include <danux/slab.h>
+#include <danux/vmm.h>
 #include <limine.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -125,6 +128,11 @@ void kmain(void) {
 
 	bitmap_init();
 	page_init();
+	buddy_init();
+	kmalloc_init();
+	vmm_init();
+
+	serial_puts("[boot] mm init done\n");
 
 	// Fetch the first framebuffer.
 	struct limine_framebuffer *framebuffer = framebuffer_request.response->framebuffers[0];
