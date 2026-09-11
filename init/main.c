@@ -1,5 +1,6 @@
 #include <danux/bitmap.h>
 #include <danux/buddy_allocator.h>
+#include <danux/gdt.h>
 #include <danux/mm.h>
 #include <danux/serial.h>
 #include <danux/page.h>
@@ -133,6 +134,9 @@ void kmain(void) {
 	vmm_init();
 
 	serial_puts("[boot] mm init done\n");
+
+	gdt_init();
+	serial_puts("[boot] gdt + tss done\n");
 
 	// Fetch the first framebuffer.
 	struct limine_framebuffer *framebuffer = framebuffer_request.response->framebuffers[0];
