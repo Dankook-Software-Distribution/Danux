@@ -4,6 +4,7 @@
 #include <danux/idt.h>
 #include <danux/mm.h>
 #include <danux/pic.h>
+#include <danux/timer.h>
 #include <danux/serial.h>
 #include <danux/page.h>
 #include <danux/slab.h>
@@ -143,6 +144,10 @@ void kmain(void) {
 	idt_init();
 	pic_remap(0x20, 0x28);	// IRQ0-7 -> 벡터 32-39, IRQ8-15 -> 벡터 40-47
 	serial_puts("[boot] idt + pic done\n");
+
+	timer_init(100);	// 100Hz, IRQ0 -> 벡터 32
+	asm volatile ("sti");
+	serial_puts("[boot] timer armed, interrupts enabled\n");
 
 	// Fetch the first framebuffer.
 	struct limine_framebuffer *framebuffer = framebuffer_request.response->framebuffers[0];
