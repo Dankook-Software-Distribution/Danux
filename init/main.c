@@ -1,7 +1,9 @@
 #include <danux/bitmap.h>
 #include <danux/buddy_allocator.h>
 #include <danux/gdt.h>
+#include <danux/idt.h>
 #include <danux/mm.h>
+#include <danux/pic.h>
 #include <danux/serial.h>
 #include <danux/page.h>
 #include <danux/slab.h>
@@ -137,6 +139,10 @@ void kmain(void) {
 
 	gdt_init();
 	serial_puts("[boot] gdt + tss done\n");
+
+	idt_init();
+	pic_remap(0x20, 0x28);	// IRQ0-7 -> 벡터 32-39, IRQ8-15 -> 벡터 40-47
+	serial_puts("[boot] idt + pic done\n");
 
 	// Fetch the first framebuffer.
 	struct limine_framebuffer *framebuffer = framebuffer_request.response->framebuffers[0];
