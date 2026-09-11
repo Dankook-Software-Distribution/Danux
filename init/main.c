@@ -4,6 +4,7 @@
 #include <danux/idt.h>
 #include <danux/mm.h>
 #include <danux/pic.h>
+#include <danux/syscall.h>
 #include <danux/timer.h>
 #include <danux/serial.h>
 #include <danux/page.h>
@@ -146,6 +147,10 @@ void kmain(void) {
 	serial_puts("[boot] idt + pic done\n");
 
 	timer_init(100);	// 100Hz, IRQ0 -> 벡터 32
+
+	syscall_init();
+	serial_puts("[boot] syscall msrs armed\n");
+
 	asm volatile ("sti");
 	serial_puts("[boot] timer armed, interrupts enabled\n");
 
