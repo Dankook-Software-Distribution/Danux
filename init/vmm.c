@@ -88,3 +88,26 @@ uint64_t *vmm_new_address_space(void) {
 void vmm_switch_address_space(uint64_t *pml4) {
 	write_cr3(virt_to_phys(pml4));
 }
+
+// virt의 매핑을 읽기 전용으로 조회한다 (vmm_unmap과 같은 모양의 walk이지만
+// 아무것도 만들거나 지우지 않는다). 없으면 0을 반환.
+int vmm_lookup(uint64_t *pml4, uint64_t virt, uint64_t *flags_out) {
+	if (!(pml4[PML4_IDX(virt)] & VMM_PRESENT))
+		return 0;
+	uint64_t *pdpt = phys_to_virt(pml4[PML4_IDX(virt)] & PTE_ADDR_MASK);
+
+	if (!(pdpt[PDPT_IDX(virt)] & VMM_PRESENT))
+		return 0;
+	uint64_t *pd = phys_to_virt(pdpt[PDPT_IDX(virt)] & PTE_ADDR_MASK);
+
+	if (!(pd[PD_IDX(virt)] & VMM_PRESENT))
+		return 0;
+	uint64_t *pt = phys_to_virt(pd[PD_IDX(virt)] & PTE_ADDR_MASK);
+
+	if (!(pt[PT_IDX(virt)] & VMM_PRESENT))
+		return 0;
+
+	if (flags_out)
+		*flags_out = pt[PT_IDX(virt)] & 0xFFF;
+	return 1;
+}

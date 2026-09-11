@@ -2,6 +2,7 @@
 #include <danux/scheduler.h>
 #include <danux/serial.h>
 #include <danux/syscall.h>
+#include <danux/syscall_validate.h>
 #include <stdint.h>
 
 #define MSR_EFER		0xC0000080
@@ -56,9 +57,11 @@ void syscall_set_kernel_stack(uint64_t rsp0) {
 	percpu.kernel_rsp = rsp0;
 }
 
-// 프로세스별 주소 공간 검증이 아직 없어서 buf를 검증 없이 그대로 읽는다.
 static uint64_t sys_write(uint64_t fd, uint64_t buf, uint64_t len) {
 	(void)fd;
+	if (!validate_user_range(current_process, (const void *)buf, len, 0))
+		return (uint64_t)-1;	// -EFAULT
+
 	const char *s = (const char *)buf;
 	for (uint64_t i = 0; i < len; i++)
 		serial_putc(s[i]);
