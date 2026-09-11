@@ -31,8 +31,9 @@ CFLAGS := -g -O2 -pipe -std=gnu11 -Wall -Wextra \
 
 LDFLAGS := -nostdlib -static -z max-page-size=0x1000 -T linker.ld
 
-SRCS := $(shell find init arch drivers -name '*.c')
-OBJS := $(patsubst %.c,build/%.o,$(SRCS))
+C_SRCS := $(shell find init arch drivers -name '*.c')
+ASM_SRCS := $(shell find init arch drivers -name '*.S')
+OBJS := $(patsubst %.c,build/%.o,$(C_SRCS)) $(patsubst %.S,build/%.o,$(ASM_SRCS))
 DEPS := $(OBJS:.o=.d)
 
 QEMU      := qemu-system-x86_64
@@ -49,6 +50,13 @@ $(KERNEL): $(OBJS) linker.ld
 	$(LD) $(OBJS) $(LDFLAGS) -o $@
 
 build/%.o: %.c
+	@mkdir -p $(dir $@)
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
+
+# .S files are hand-written GAS with C preprocessor directives (macros,
+# .irp, etc.), so assemble them through $(CC) too -- same -I/-MMD/-MP
+# treatment as the C sources, not a bare `as` invocation.
+build/%.o: %.S
 	@mkdir -p $(dir $@)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
