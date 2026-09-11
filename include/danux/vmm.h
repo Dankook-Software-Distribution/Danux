@@ -22,4 +22,9 @@ extern void vmm_unmap(uint64_t *pml4, uint64_t virt);
 extern uint64_t *vmm_new_address_space(void);
 extern void vmm_switch_address_space(uint64_t *pml4);
 
+// virt의 매핑 존재 여부만 읽어서 알려준다(테이블을 새로 만들지 않음). 있으면
+// 1을 반환하고 flags_out에 PTE 플래그(PRESENT/WRITABLE/USER)를 채운다.
+// syscall_validate.c가 유저 포인터 검증에 사용한다.
+extern int vmm_lookup(uint64_t *pml4, uint64_t virt, uint64_t *flags_out);
+
 #endif
