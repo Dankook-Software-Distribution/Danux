@@ -27,15 +27,20 @@ static void split_free_page(uint8_t order) {
 	uint64_t left_pfn = page_to_pfn(page_addr);
 	uint64_t right_pfn = left_pfn + (1UL << (order - 1));
 
+	// node(= left_pfn의 linkage)를 현재 order의 free_list에서 먼저 떼어내야 한다.
+	// list_del은 node->prev/next를 보고 원래 리스트에서 빼는데, 만약 아래
+	// list_add_next를 먼저 해버리면 그 시점에 이미 node가 order-1 리스트로
+	// 옮겨진 뒤라서, list_del이 방금 넣은 order-1 리스트에서 다시 빼버리게
+	// 된다 -- left_pfn 페이지가 어느 free_list에도 없는 채로 유실되고,
+	// order 레벨의 head는 끊어진 node를 계속 가리키는 상태로 남는다.
+	list_del(node);
+
 	page_arr[left_pfn].flags |= PG_BUDDY;
 	page_arr[right_pfn].flags |= PG_BUDDY;
 
 	// 쪼갠 free_page를 현재 order의 하위 free_list에 넣기
 	list_add_next(&g_buddy_system.free_list[order - 1], &page_arr[left_pfn].linkage);
 	list_add_next(&g_buddy_system.free_list[order - 1], &page_arr[right_pfn].linkage);
-
-	// 쪼갠 free_page를 free_list에서 삭제
-	list_del(node);
 }
 
 static void *get_free_page(uint8_t order) {
