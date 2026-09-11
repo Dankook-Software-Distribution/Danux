@@ -4,6 +4,8 @@
 #include <danux/idt.h>
 #include <danux/mm.h>
 #include <danux/pic.h>
+#include <danux/process.h>
+#include <danux/scheduler.h>
 #include <danux/syscall.h>
 #include <danux/timer.h>
 #include <danux/serial.h>
@@ -168,6 +170,37 @@ void kmain(void) {
 		}
 	}
 
-	// We're done, just hang...
+	scheduler_init();	// IRQ0 핸들러를 scheduler_tick()으로 덮어씀
+
+	extern char user_program_start[];
+	extern char user_program_end[];
+	uint64_t code_len = (uint64_t)(user_program_end - user_program_start);
+
+	process_t *p1 = process_create("user1", USER_VADDR_BASE, user_program_start, code_len);
+	scheduler_add(p1);
+	serial_puts("[boot] created pid ");
+	serial_putdec(p1->pid);
+	serial_puts(" ('");
+	serial_puts(p1->name);
+	serial_puts("'), ");
+	serial_putdec(code_len);
+	serial_puts(" bytes of user code\n");
+
+	tss_set_kernel_stack(p1->kernel_stack_top);
+	syscall_set_kernel_stack(p1->kernel_stack_top);
+	vmm_switch_address_space(p1->pml4);
+	p1->state = PROC_RUNNING;
+
+	serial_puts("[boot] handing off to pid ");
+	serial_putdec(p1->pid);
+	serial_puts(" in ring3...\n");
+
+	// kmain 자신의 레지스터 상태는 kmain_rsp에 저장되고 다시는 재개되지 않는다
+	// -- 여기서부터는 유저 프로세스들과 그것들을 선점하는 타이머 IRQ가 제어권을
+	// 갖는다 (scheduler_tick / process_start_trampoline 참고).
+	static uint64_t kmain_rsp;
+	context_switch(&kmain_rsp, p1->saved_rsp);
+
+	// 도달 안 함.
 	hcf();
 }

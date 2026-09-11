@@ -1,4 +1,5 @@
 #include <danux/gdt.h>
+#include <danux/scheduler.h>
 #include <danux/serial.h>
 #include <danux/syscall.h>
 #include <stdint.h>
@@ -72,12 +73,14 @@ uint64_t syscall_dispatch(syscall_frame_t *frame) {
 		result = sys_write(frame->rdi, frame->rsi, frame->rdx);
 		break;
 	case SYS_GETPID:
-		// 아직 현재 프로세스를 추적하는 스케줄러가 없다.
-		result = 0;
+		result = current_process->pid;
 		break;
 	case SYS_EXIT:
-		// 프로세스 종료 처리가 아직 없다. 최소한 유저 코드로 sysretq해서
-		// 계속 도는 일은 없도록 여기서 멈춘다.
+		process_exit(current_process);
+		// 죽은 프로세스의 유저 코드로 다시 sysretq하지 않는다. 대신 이 커널
+		// 스택을 인터럽트 가능한 hlt 루프에 묶어둔다 -- 다음 타이머 틱이
+		// (유저 모드가 아니라) 여기로 떨어져서 이 프로세스가 ZOMBIE임을 보고
+		// pick_next()가 이후로 영원히 건너뛰게 된다.
 		asm volatile ("sti");
 		for (;;) asm volatile ("hlt");
 	default:
