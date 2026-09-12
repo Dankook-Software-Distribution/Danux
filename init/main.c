@@ -153,8 +153,20 @@ void kmain(void) {
 	syscall_init();
 	serial_puts("[boot] syscall msrs armed\n");
 
-	asm volatile ("sti");
-	serial_puts("[boot] timer armed, interrupts enabled\n");
+	/*
+	 * 여기서 sti를 하지 않는다.
+	 *
+	 * 인터럽트를 미리 켜두면 scheduler_add() 직후부터 아래 context_switch()
+	 * 사이의 창에서 타이머 틱이 들어올 수 있다. 그 시점의 current_process는
+	 * 아직 한 번도 돈 적 없는 p1인데, scheduler_tick은 그걸 "실행 중이던
+	 * 프로세스"로 보고 prev->saved_rsp에 지금 kmain이 쓰고 있는 rsp를
+	 * 덮어쓴다. process_create가 손으로 깔아둔 초기 프레임이 날아간다.
+	 * (프로세스가 하나뿐이면 pick_next가 자기 자신을 돌려줘서 우연히 피해간다.)
+	 *
+	 * 인터럽트는 첫 프로세스의 enter_usermode가 iretq로 IF=1인 RFLAGS를
+	 * 복원하면서 켜진다.
+	 */
+	serial_puts("[boot] timer armed (interrupts stay off until ring3)\n");
 
 	// Fetch the first framebuffer.
 	struct limine_framebuffer *framebuffer = framebuffer_request.response->framebuffers[0];
