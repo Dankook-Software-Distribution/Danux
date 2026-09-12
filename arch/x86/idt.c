@@ -54,6 +54,20 @@ void register_interrupt_handler(uint8_t n, isr_handler_t handler) {
 void isr_dispatch(registers_t *regs) {
 	uint64_t n = regs->int_no;
 
+	/*
+	 * IRQ의 EOI는 핸들러를 부르기 "전에" 보낸다.
+	 *
+	 * 스케줄러가 IRQ0 핸들러를 가져간 뒤로는 scheduler_tick 안의
+	 * context_switch가 곧바로 돌아오지 않는다 (그 프로세스가 다시 스케줄될
+	 * 때에야 돌아온다). EOI를 핸들러 뒤에 두면 그동안 PIC가 막힌 채로 남아
+	 * 타이머가 한 번 울리고 죽는다.
+	 *
+	 * 게이트가 인터럽트 게이트(0x8E)라 여기서는 IF=0이다. 따라서 EOI를
+	 * 먼저 보내도 이 핸들러가 재진입당하지는 않는다.
+	 */
+	if (n >= 32 && n < 48)
+		pic_send_eoi((uint8_t)(n - 32));
+
 	if (handlers[n]) {
 		handlers[n](regs);
 	} else if (n < 32) {
@@ -68,8 +82,4 @@ void isr_dispatch(registers_t *regs) {
 		serial_putc('\n');
 		panic("unhandled CPU exception");
 	}
-
-	// IRQ는 32-47번 벡터에 놓여있음. 핸들러가 다 끝난 뒤에 PIC에 EOI를 보낸다.
-	if (n >= 32 && n < 48)
-		pic_send_eoi((uint8_t)(n - 32));
 }
