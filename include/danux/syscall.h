@@ -5,6 +5,9 @@
 
 #define SYS_WRITE	1
 #define SYS_READ	2
+// sys_write가 한 번에 받아주는 최대 바이트 수 (인터럽트 차단 시간 제한).
+#define SYS_WRITE_MAX	1024
+
 #define SYS_EXIT	3
 #define SYS_GETPID	4
 

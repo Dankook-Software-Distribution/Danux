@@ -59,6 +59,15 @@ void syscall_set_kernel_stack(uint64_t rsp0) {
 
 static uint64_t sys_write(uint64_t fd, uint64_t buf, uint64_t len) {
 	(void)fd;
+
+	/*
+	 * 길이를 제한한다. 시리얼은 폴링 방식이고 syscall 처리 중에는 FMASK
+	 * 때문에 IF=0이라, 긴 write 한 번이 그대로 인터럽트 차단 시간이 된다.
+	 * 115200 baud에서 1바이트가 약 87us이므로 100Hz 틱(10ms) 예산을 쉽게 넘긴다.
+	 */
+	if (len > SYS_WRITE_MAX)
+		len = SYS_WRITE_MAX;
+
 	if (!validate_user_range(current_process, (const void *)buf, len, 0))
 		return (uint64_t)-1;	// -EFAULT
 
