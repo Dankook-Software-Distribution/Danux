@@ -35,8 +35,12 @@ static void split_free_page(uint8_t order) {
 	// order 레벨의 head는 끊어진 node를 계속 가리키는 상태로 남는다.
 	list_del(node);
 
+	// 두 조각 모두 이제 order-1짜리 free 블록의 머리다.
+	// misc에 order를 남겨야 page_free의 합치기 조건이 이걸 확인할 수 있다.
 	page_arr[left_pfn].flags |= PG_BUDDY;
+	page_arr[left_pfn].misc = order - 1;
 	page_arr[right_pfn].flags |= PG_BUDDY;
+	page_arr[right_pfn].misc = order - 1;
 
 	// 쪼갠 free_page를 현재 order의 하위 free_list에 넣기
 	list_add_next(&g_buddy_system.free_list[order - 1], &page_arr[left_pfn].linkage);
@@ -98,20 +102,44 @@ void page_free(void *addr) {
 	// 가상 주소로 받은 addr로 PFN를 구해야함 -> virt_to_phys() == PFN
 	uint64_t pfn = virt_to_phys((void *)addr) >> PAGE_SHIFT;
 	uint8_t order = (uint8_t)page_arr[pfn].misc;
-	uint64_t buddy_pfn = buddy_pfn_of(pfn, order);
 
-	page_arr[pfn].flags = PG_BUDDY;
+	while (order < MAX_ORDER) {
+		uint64_t buddy_pfn = buddy_pfn_of(pfn, order);
 
-	while (order < MAX_ORDER && page_arr[buddy_pfn].flags & PG_BUDDY) {
+		// page_arr 밖으로 나가면 합칠 상대가 없다.
+		if (buddy_pfn >= max_pfn)
+			break;
+
+		/*
+		 * 버디가 "같은 order로 통째로" 비어 있을 때만 합칠 수 있다.
+		 * PG_BUDDY만 보고 합치면, 버디가 더 작은 블록의 머리일 뿐인데도
+		 * 그 뒤쪽 할당된 페이지까지 같이 삼켜버린다.
+		 */
+		if (!(page_arr[buddy_pfn].flags & PG_BUDDY))
+			break;
+		if ((uint8_t)page_arr[buddy_pfn].misc != order)
+			break;
+
 		// 합치기 전 buddy를 free_list에서 삭제
 		list_del(&page_arr[buddy_pfn].linkage);
 		page_arr[buddy_pfn].flags &= ~PG_BUDDY;
 
-		// 두 페이지 중 더 낮은 번호의 페이지를 선택
-		pfn = pfn < buddy_pfn ? pfn : buddy_pfn;
-		buddy_pfn = buddy_pfn_of(pfn, order + 1);
+		// 두 페이지 중 더 낮은 번호의 페이지가 합쳐진 블록의 머리가 된다.
+		if (buddy_pfn < pfn)
+			pfn = buddy_pfn;
 		order++;
 	}
+
+	/*
+	 * 머리 표시는 합치기가 끝난 뒤에 해야 한다.
+	 *
+	 * 예전에는 루프 전에 "넘겨받은 pfn"에만 PG_BUDDY를 달았다. 그런데
+	 * 합쳐지면 머리가 버디 쪽으로 넘어갈 수 있고, 루프는 그 버디의
+	 * PG_BUDDY를 지운다. 그래서 free_list에 들어간 블록의 머리에 PG_BUDDY가
+	 * 없는 상태가 만들어졌고, 이후 어떤 합치기도 그 블록을 알아보지 못했다.
+	 */
+	page_arr[pfn].flags = PG_BUDDY;
+	page_arr[pfn].misc = order;
 
 	list_add_next(&g_buddy_system.free_list[order], &page_arr[pfn].linkage);
 
