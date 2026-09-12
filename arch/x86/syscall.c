@@ -59,6 +59,15 @@ void syscall_set_kernel_stack(uint64_t rsp0) {
 
 static uint64_t sys_write(uint64_t fd, uint64_t buf, uint64_t len) {
 	(void)fd;
+
+	/*
+	 * 길이를 제한한다. 시리얼은 폴링 방식이고 syscall 처리 중에는 FMASK
+	 * 때문에 IF=0이라, 긴 write 한 번이 그대로 인터럽트 차단 시간이 된다.
+	 * 115200 baud에서 1바이트가 약 87us이므로 100Hz 틱(10ms) 예산을 쉽게 넘긴다.
+	 */
+	if (len > SYS_WRITE_MAX)
+		len = SYS_WRITE_MAX;
+
 	if (!validate_user_range(current_process, (const void *)buf, len, 0))
 		return (uint64_t)-1;	// -EFAULT
 
@@ -80,6 +89,21 @@ uint64_t syscall_dispatch(syscall_frame_t *frame) {
 		break;
 	case SYS_EXIT:
 		process_exit(current_process);
+		/*
+		 * syscall_entry가 진입할 때 건 swapgs를 여기서 직접 되돌린다.
+		 *
+		 * 정상 경로라면 syscall_entry의 마지막 swapgs가 짝을 맞춰주지만,
+		 * 아래 hlt 루프는 그 경로로 절대 돌아가지 않는다. 그대로 두면
+		 * GS_BASE=&percpu, KERNEL_GS_BASE=0인 상태로 굳어버리고,
+		 * 스케줄러가 다음 프로세스로 넘어간 뒤 그 프로세스가 처음
+		 * syscall을 하는 순간 swapgs가 GS_BASE를 0으로 만들어
+		 * `mov %rsp, %gs:8`이 주소 8에 쓰다가 #PF로 죽는다.
+		 *
+		 * enter_usermode는 `mov %ax, %gs`로 GS_BASE만 0으로 만들 뿐
+		 * KERNEL_GS_BASE는 건드리지 않으므로 이 불균형을 복구해주지 못한다.
+		 */
+		asm volatile ("swapgs");
+
 		// 죽은 프로세스의 유저 코드로 다시 sysretq하지 않는다. 대신 이 커널
 		// 스택을 인터럽트 가능한 hlt 루프에 묶어둔다 -- 다음 타이머 틱이
 		// (유저 모드가 아니라) 여기로 떨어져서 이 프로세스가 ZOMBIE임을 보고
