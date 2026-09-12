@@ -28,22 +28,32 @@ process_t *process_create(const char *name, uint64_t entry_vaddr, const void *co
 
 	proc->pml4 = vmm_new_address_space();
 
-	// 유저 코드를 페이지 단위로 매핑하고 복사한다.
+	/*
+	 * 유저 코드를 페이지 단위로 매핑하고 복사한다.
+	 *
+	 * page_alloc은 페이지를 0으로 밀어주지 않는다. 마지막 페이지에서 코드가
+	 * 끝난 뒤 남는 자리에는 직전에 그 프레임을 쓰던 커널 데이터가 그대로
+	 * 남아 있고, 그 페이지는 ring3에서 읽을 수 있다. 반드시 먼저 지운다.
+	 */
 	for (uint64_t off = 0; off < code_len; off += PAGE_SIZE) {
 		void *frame = page_alloc(PAGE_SIZE);
 		uint64_t chunk = code_len - off < PAGE_SIZE ? code_len - off : PAGE_SIZE;
+		memset(frame, 0, PAGE_SIZE);
 		memcpy(frame, (const uint8_t *)code + off, chunk);
 		vmm_map(proc->pml4, entry_vaddr + off, virt_to_phys(frame), VMM_WRITABLE | VMM_USER);
 	}
 
 	// USER_STACK_TOP 바로 아래 한 페이지짜리 유저 스택.
+	// 여기도 마찬가지로, 지우지 않으면 이전 커널 데이터가 통째로 유저에게 보인다.
 	void *stack_frame = page_alloc(PAGE_SIZE);
+	memset(stack_frame, 0, PAGE_SIZE);
 	vmm_map(proc->pml4, USER_STACK_TOP - PAGE_SIZE, virt_to_phys(stack_frame), VMM_WRITABLE | VMM_USER);
 	proc->user_stack_top = USER_STACK_TOP;
 
 	// 이 프로세스가 ring0에 있을 때(syscall, 인터럽트) 쓰는 커널 스택.
 	// 스케줄될 때 TSS.rsp0도 이 값을 가리키게 된다.
 	void *kstack = page_alloc(PAGE_SIZE);
+	memset(kstack, 0, PAGE_SIZE);
 	proc->kernel_stack_top = (uint64_t)kstack + PAGE_SIZE;
 
 	// 첫 context_switch()가 꺼낼 프레임을 손으로 쌓는다: callee-saved
